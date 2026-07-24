@@ -17,13 +17,9 @@ export type Round = {
 }
 
 export type GameState = {
-  players: Player[]
+  players: Player[] // computed players with current points and stars
   rounds: Round[]
   undoStack: GameState[]
-}
-
-export const CardType = {
-  ACE: 'A',
 }
 
 export function createGame(names: string[]): GameState{
@@ -31,35 +27,53 @@ export function createGame(names: string[]): GameState{
   return {players, rounds:[], undoStack:[]}
 }
 
-export function cardValue(card:string){
-  // simple mapping if needed
-  switch(card){
-    case 'A': return 1
-    case 'J': return 15
-    case 'Q': return 2
-    case 'K': return 3
-    case 'JOKER': return 30
-    case '7H': return 25
-    default: {
-      const n = Number(card)
-      return isNaN(n)?0:n
-    }
+export function cardValueRank(rank: string, suit?: string){
+  // rank: 'A','2'..'10','J','Q','K','JOKER','7'
+  if(rank === 'JOKER') return 30
+  if(rank === 'A') return 1
+  if(rank === 'J') return 15
+  if(rank === 'Q') return 2
+  if(rank === 'K') return 3
+  if(rank === '7' && suit === 'hearts') return 25
+  const n = Number(rank)
+  if(!isNaN(n)) return n
+  return 0
+}
+
+function deepCopyState(state: GameState): GameState{
+  return JSON.parse(JSON.stringify(state))
+}
+
+function computePlayersFromRounds(playersBase: Player[], rounds: Round[]): Player[]{
+  const next = playersBase.map(p=>({id:p.id,name:p.name,points:0,stars:0}))
+  for(const r of rounds){
+    // apply scores
+    Object.entries(r.scores).forEach(([pid,score])=>{
+      const pl = next.find(p=>p.id===pid)
+      if(pl){ pl.points += score }
+    })
+    // winner star
+    const winner = next.find(p=>p.id===r.winnerId)
+    if(winner) winner.stars += 1
   }
+  return next
 }
 
 export function addRound(state: GameState, round: Round): GameState{
-  const snapshot = JSON.parse(JSON.stringify(state))
-  const nextPlayers = state.players.map(p=>({...p}))
-  // apply scores
-  Object.entries(round.scores).forEach(([pid,score])=>{
-    const pl = nextPlayers.find(x=>x.id===pid)
-    if(pl){ pl.points += score }
-  })
-  // winner gets 0 and one star
-  const winner = nextPlayers.find(p=>p.id===round.winnerId)
-  if(winner) winner.stars += 1
+  const snapshot = deepCopyState(state)
+  const nextRounds = [...state.rounds, round]
+  const playersBase = state.players.map(p=>({id:p.id,name:p.name,points:0,stars:0}))
+  const nextPlayers = computePlayersFromRounds(playersBase, nextRounds)
+  const next: GameState = {players: nextPlayers, rounds: nextRounds, undoStack: [...state.undoStack.slice(-49), snapshot]}
+  return next
+}
 
-  const next: GameState = {players: nextPlayers, rounds: [...state.rounds, round], undoStack: [...state.undoStack.slice(-49), snapshot]}
+export function editRound(state: GameState, roundId: string, updatedRound: Round): GameState{
+  const snapshot = deepCopyState(state)
+  const nextRounds = state.rounds.map(r=> r.id===roundId ? updatedRound : r)
+  const playersBase = state.players.map(p=>({id:p.id,name:p.name,points:0,stars:0}))
+  const nextPlayers = computePlayersFromRounds(playersBase, nextRounds)
+  const next: GameState = {players: nextPlayers, rounds: nextRounds, undoStack: [...state.undoStack.slice(-49), snapshot]}
   return next
 }
 
@@ -67,7 +81,9 @@ export function undoRound(state: GameState): GameState{
   const last = state.undoStack[state.undoStack.length-1]
   if(!last) return state
   const nextUndo = state.undoStack.slice(0,-1)
-  return {...last, undoStack: nextUndo}
+  // last already contains its own undoStack; preserve the remaining stack
+  last.undoStack = nextUndo
+  return last
 }
 
 export function resetGame(): GameState{
