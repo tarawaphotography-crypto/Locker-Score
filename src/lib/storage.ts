@@ -9,5 +9,7 @@ export function loadState(){
 }
 export function saveState(state:any){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)) }catch(e){}
+  // also broadcast storage event so other tabs update
+  try{ window.dispatchEvent(new Event('storage')) }catch(e){}
 }
-export function clearState(){ localStorage.removeItem(STORAGE_KEY) }
+export function clearState(){ localStorage.removeItem(STORAGE_KEY); try{ window.dispatchEvent(new Event('storage')) }catch(e){} }

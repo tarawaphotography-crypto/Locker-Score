@@ -14,6 +14,7 @@ export default function CardCalculator(){
   const [winnerId, setWinnerId] = React.useState<string | null>(null)
   const [playerCards, setPlayerCards] = React.useState<Record<string, Card[]>>({})
   const [lockerDetected, setLockerDetected] = React.useState(false)
+  const [lockedBy, setLockedBy] = React.useState<string | null>(null)
 
   React.useEffect(()=>{
     const s = loadState()
@@ -37,10 +38,16 @@ export default function CardCalculator(){
     // detect locker
     if(card.rank==='7' && card.suit==='hearts'){
       setLockerDetected(true)
+      setLockedBy(playerId)
+      // focus winner selection if not set
+      setTimeout(()=>{
+        // optional UX: nothing automatic, but we can guide the user
+      },100)
     }
   }
 
   function removeCard(playerId:string, index:number){
+    if(lockerDetected) return // cannot remove after locker
     setPlayerCards(prev=>{
       const next = {...prev}
       next[playerId] = next[playerId].filter((_,i)=>i!==index)
@@ -66,7 +73,7 @@ export default function CardCalculator(){
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl text-gold">Card Calculator</h2>
-        {lockerDetected && <div className="text-sm text-red-400">Locker played — round will end when you finish</div>}
+        {lockerDetected && <div className="text-sm text-red-400">Locker played by {game.players.find(p=>p.id===lockedBy)?.name} — no further cards</div>}
       </div>
 
       <p className="text-sm text-white/60">Select cards for each player. When 7♥ (Locker) is added, no more cards may be played this round.</p>
@@ -88,7 +95,7 @@ export default function CardCalculator(){
               {RANKS.map(r=>(
                 <button key={r} onClick={()=>addCard(p.id,{rank:r})} disabled={lockerDetected} className="p-2 bg-white/5 rounded text-sm">{r}</button>
               ))}
-              <div className="col-span-6 mt-2">Suits</div>
+              <div className="col-span-6 mt-2">Suits (tap to play 7 of that suit)</div>
               {SUITS.map(s=> (
                 <button key={s} onClick={()=>addCard(p.id,{rank:'7', suit:s})} disabled={lockerDetected} className="p-2 bg-white/5 rounded text-sm">7 {s}</button>
               ))}
@@ -101,7 +108,7 @@ export default function CardCalculator(){
                   <div key={idx} className="p-2 bg-black/40 rounded border border-white/5 flex items-center gap-2">
                     <div className="text-sm">{c.rank}{c.suit? ' '+c.suit[0].toUpperCase() : ''}</div>
                     <div className="text-xs text-white/60">{cardValueRank(c.rank,c.suit)}</div>
-                    <button onClick={()=>removeCard(p.id, idx)} className="text-xs text-red-400">✕</button>
+                    {!lockerDetected && <button onClick={()=>removeCard(p.id, idx)} className="text-xs text-red-400">✕</button>}
                   </div>
                 ))}
               </div>
@@ -111,8 +118,8 @@ export default function CardCalculator(){
       </div>
 
       <div className="flex gap-2">
-        <button onClick={finishRound} className="flex-1 btn-large bg-gold text-black rounded">Finish Round</button>
-        <button onClick={()=>{ /* reset transient */ const initial: Record<string, Card[]> = {}; game.players.forEach(p=>initial[p.id]=[]); setPlayerCards(initial); setLockerDetected(false); setWinnerId(null); }} className="p-3 bg-white/5 rounded">Reset</button>
+        <button onClick={finishRound} disabled={!winnerId} className={`flex-1 btn-large ${winnerId? 'bg-gold text-black':'bg-white/8 text-white/40'} rounded`}>Finish Round</button>
+        <button onClick={()=>{ /* reset transient */ const initial: Record<string, Card[]> = {}; game.players.forEach(p=>initial[p.id]=[]); setPlayerCards(initial); setLockerDetected(false); setWinnerId(null); setLockedBy(null); }} className="p-3 bg-white/5 rounded">Reset</button>
       </div>
     </div>
   )

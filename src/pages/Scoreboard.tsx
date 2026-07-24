@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom'
 export default function Scoreboard(){
   const nav = useNavigate()
   const [game, setGame] = React.useState<GameState | null>(null)
+  const [showEndDialog, setShowEndDialog] = React.useState(false)
 
   React.useEffect(()=>{
     const s = loadState()
@@ -15,6 +16,13 @@ export default function Scoreboard(){
   React.useEffect(()=>{
     // save when game updates
     if(game) saveState(game)
+  },[game])
+
+  React.useEffect(()=>{
+    if(game){
+      const loser = game.players.find(p=>p.points>=100)
+      if(loser) setShowEndDialog(true)
+    }
   },[game])
 
   function onNewRound(){
@@ -43,6 +51,7 @@ export default function Scoreboard(){
 
   const loser = game.players.find(p=>p.points>=100)
   const sorted = [...game.players].sort((a,b)=>a.points-b.points)
+  const winner = sorted[0]
 
   return (
     <div className="space-y-4">
@@ -74,6 +83,19 @@ export default function Scoreboard(){
         <Link to="/stats" className="block p-3 bg-white/5 rounded">Statistics</Link>
         <Link to="/settings" className="block p-3 bg-white/5 rounded">Settings</Link>
       </div>
+
+      {showEndDialog && (
+        <div className="fixed inset-0 flex items-center justify-center modal-backdrop p-4">
+          <div className="w-full max-w-md bg-bg p-4 rounded-lg border border-white/5">
+            <h3 className="text-xl text-gold">Game Over</h3>
+            <p className="mt-2">A player reached 100 points and lost. Current winner (lowest points): <strong>{winner?.name}</strong> with {winner?.points} points.</p>
+            <div className="flex gap-2 mt-4">
+              <button onClick={()=>{ setShowEndDialog(false) }} className="flex-1 p-3 bg-white/5 rounded">Continue</button>
+              <button onClick={()=>{ onReset(); setShowEndDialog(false) }} className="flex-1 p-3 bg-gold text-black rounded">New Game</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
