@@ -15,3 +15,30 @@ html,body,#root{height:100%}
 }
 
 .header{background:linear-gradient(90deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border-bottom:1px solid rgba(202,165,43,0.08)}
+
+/* iPhone-friendly large buttons */
+.btn-large{
+  padding:14px 18px;
+  border-radius:12px;
+  font-weight:600;
+}
+
+/* Gold glow */
+.gold-glow{
+  box-shadow: 0 6px 18px rgba(202,165,43,0.12), inset 0 -2px 6px rgba(255,255,255,0.02);
+}
+
+/* Subtle card animation */
+.card-enter{
+  transform: translateY(8px) scale(0.98);
+  opacity:0;
+}
+.card-enter-active{
+  transform: translateY(0) scale(1);
+  opacity:1;
+  transition: all 220ms cubic-bezier(.2,.9,.3,1);
+}
+
+.locked-overlay{
+  background: linear-gradient(180deg, rgba(0,0,0,0.4), rgba(0,0,0,0.6));
+}

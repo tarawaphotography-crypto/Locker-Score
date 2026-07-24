@@ -1,6 +1,6 @@
 import React from 'react'
 import { loadState, saveState } from '../lib/storage'
-import { GameState, addRound, undoRound, resetGame } from '../lib/game'
+import { GameState, endRoundWithHands, undoRound, resetGame } from '../lib/game'
 import { Link, useNavigate } from 'react-router-dom'
 
 export default function Scoreboard(){
@@ -11,6 +11,11 @@ export default function Scoreboard(){
     const s = loadState()
     setGame(s||null)
   },[])
+
+  React.useEffect(()=>{
+    // save when game updates
+    if(game) saveState(game)
+  },[game])
 
   function onNewRound(){
     nav('/card-calculator')
@@ -37,6 +42,7 @@ export default function Scoreboard(){
   )
 
   const loser = game.players.find(p=>p.points>=100)
+  const sorted = [...game.players].sort((a,b)=>a.points-b.points)
 
   return (
     <div className="space-y-4">
@@ -45,21 +51,21 @@ export default function Scoreboard(){
         <div className="text-sm text-white/60">Rounds: {game.rounds.length}</div>
       </div>
       <div className="space-y-2">
-        {game.players.map(p=> (
-          <div key={p.id} className="p-3 rounded bg-white/3 flex justify-between items-center">
+        {sorted.map(p=> (
+          <div key={p.id} className="p-3 rounded bg-white/3 flex justify-between items-center transition-transform transform hover:scale-[1.01]">
             <div>
-              <div className="font-medium">{p.name}</div>
+              <div className="font-medium text-lg">{p.name}</div>
               <div className="text-sm text-white/60">Stars: <span className="text-gold">{p.stars}</span></div>
             </div>
             <div className="text-right">
-              <div className="text-2xl">{p.points}</div>
+              <div className="text-3xl">{p.points}</div>
               {loser && loser.id===p.id && <div className="text-xs text-red-400">Reached 100+</div>}
             </div>
           </div>
         ))}
       </div>
       <div className="flex gap-2">
-        <button onClick={onNewRound} className="flex-1 p-3 bg-gold text-black rounded">New Round</button>
+        <button onClick={onNewRound} className="flex-1 btn-large bg-gold text-black rounded">New Round</button>
         <button onClick={onUndo} className="p-3 bg-white/5 rounded">Undo</button>
         <button onClick={onReset} className="p-3 bg-white/5 rounded">New Game</button>
       </div>
